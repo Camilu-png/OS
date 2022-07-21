@@ -5,6 +5,7 @@ Page *init_page_table(int num_pages)
     Page *page_table = malloc(num_pages * sizeof(Page));
     for (int i = 0; i < num_pages; i++)
     {
+        page_table[i].id = i;
         page_table[i].valid = 0;
         page_table[i].used = 0;
         page_table[i].dirty = 0;
@@ -13,15 +14,17 @@ Page *init_page_table(int num_pages)
     return page_table;
 }
 
-int *init_queue_frames(int num_frames)
+Frame *init_queue_frames(int num_frames)
 {
-    int *queue = malloc(sizeof(int) * num_frames);
+    Frame *queue = malloc(sizeof(Frame) * num_frames);
     for (int i = 0; i < num_frames; i++)
     {
-        queue[i] = -1;
+        queue[i].id_frame = i;
+        queue[i].page = NULL;
     }
     return queue;
 }
+
 void show_page_table(Page *page_table, int num_pages)
 {
     printf("Page V U D Frame\n");
@@ -37,85 +40,69 @@ void show_page_table(Page *page_table, int num_pages)
     }
 }
 
-void show_queue(int *queue, int num_frames)
+void pop(Frame *frames, Page *pages, int num_frames)
 {
-    for (int i = 0; i < num_frames; i++)
+    int id_page = frames[0].page->id;
+    int id_frame = frames[0].id_frame;
+    pages[id_page].valid = 0;
+    pages[id_page].frame = -1;
+
+    for (int i = 0; i < num_frames - 1; i++)
     {
-        printf("%d ", queue[i]);
+        frames[i] = frames[i + 1];
     }
-    printf("\n");
-}
-void pop(int *queue, Page *pages, int num_frames)
-{
-    int page = queue[0];
-    pages[page].valid = 0;
-    pages[page].frame = -1;
-
-    for (int i = 0; i < num_frames; i++)
-    {
-        if (i == (num_frames - 1))
-            queue[i] = -1;
-        else
-            queue[i] = queue[i + 1];
-        pages[queue[i]].frame = i;
-    }
+    frames[num_frames - 1].page = NULL;
+    frames[num_frames - 1].id_frame = id_frame;
 }
 
-void push(int *queue, int num_frames, int id_page)
-{
-    queue[num_frames - 1] = id_page;
-}
-
-void valid_page(int id_page, Page *pages, int *frames, int num_frames, int *faults)
+void valid_page(int id_page, Page *pages, Frame *frames, int num_frames, int *faults)
 {
     for (int i = 0; i < num_frames; i++)
     {
-        if (frames[i] == id_page)
-            return;
-
-        else if (frames[i] == -1)
+        if (frames[i].page == NULL)
         {
-            frames[i] = id_page;
-            pages[id_page].frame = i;
+            frames[i].page = &pages[id_page];
+            pages[id_page].frame = frames[i].id_frame;
             pages[id_page].valid = 1;
             pages[id_page].used = 0;
             pages[id_page].dirty = 0;
             (*faults)++;
+
             return;
         }
+        else if (frames[i].page->id == id_page)
+            return;
     }
 
     pop(frames, pages, num_frames);
-    push(frames, num_frames, id_page);
-    pages[id_page].frame = num_frames - 1;
+    frames[num_frames - 1].page = &pages[id_page];
+    pages[id_page].frame = frames[num_frames - 1].id_frame;
     pages[id_page].valid = 1;
     (*faults)++;
 }
 
-void read_page(int id_page, Page *pages)
+Frame find_frame(int id_frame, Frame *frames, int num_frames)
 {
-    pages[id_page].used = 1;
-}
-
-void write_page(int id_page, Page *pages)
-{
-    pages[id_page].dirty = 1;
-}
-
-void free_frame(int id_page, Page *pages, int *frames, int num_frames)
-{
-    pages[id_page].valid = 0;
-    pages[id_page].frame = -1;
-    frames[id_page] = -1;
-    for (int i = 0; i < num_frames - 1; i++)
+    for (int i = 0; i < num_frames; i++)
     {
-        if (i >= id_page)
+        if (frames[i].id_frame == id_frame)
         {
-            frames[i] = frames[i + 1];
-            pages[frames[i]].frame = i;
+            return frames[i];
         }
     }
-    frames[num_frames - 1] = -1;
+}
+
+void free_frame(int id_frame, Page *pages, Frame *frames, int num_frames)
+{
+    Frame curr_frame = find_frame(id_frame, frames, num_frames);
+    pages[curr_frame.page->id].valid = 0;
+    pages[curr_frame.page->id].frame = -1;
+    for (int i = curr_frame.id_frame; i < num_frames - 1; i++)
+    {
+        frames[i] = frames[i + 1];
+    }
+    frames[num_frames - 1].id_frame = curr_frame.id_frame;
+    frames[num_frames - 1].page = NULL;
 }
 
 int main(int argc, char *argv[])
@@ -130,7 +117,7 @@ int main(int argc, char *argv[])
     printf("Frames: %d\n", frames);
     printf("Reading from file: %s\n", file);
 
-    int *queue = init_queue_frames(frames);
+    Frame *queue = init_queue_frames(frames);
     Page *page_table = init_page_table(pages);
     int faults = 0;
     int *faults_ptr = &faults;
@@ -150,17 +137,17 @@ int main(int argc, char *argv[])
         char instruction = line[0];
         int id_page = line[1] - '0';
 
-        valid_page(id_page, page_table, queue, frames, faults_ptr);
-
         switch (instruction)
         {
         case 'R':
-            read_page(id_page, page_table);
+            valid_page(id_page, page_table, queue, frames, faults_ptr);
+            page_table[id_page].used = 1;
             break;
 
         case 'W':
-            read_page(id_page, page_table);
-            write_page(id_page, page_table);
+            valid_page(id_page, page_table, queue, frames, faults_ptr);
+            page_table[id_page].used = 1;
+            page_table[id_page].dirty = 1;
             break;
 
         case 'F':
