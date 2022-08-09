@@ -71,3 +71,7 @@ typedef struct
     Page *page;
 } Frame;
 ```
+### Comentarios a solucionar
+
+* No es necesaria la estructura Frame. Al ya tener la estructura página es suficiente con hacer una arreglo de esta estructura. 
+* Cambiar los tipos de datos de los bit de la página a char, ya que solo se utilizarán "0" y "1".
