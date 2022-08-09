@@ -1,25 +1,40 @@
 #include "shellcito.h"
 
-int execute_command(char *command, char *arguments[1024], int argument_count, int background)
+int print_arguments(char *arguments[], int argument_count)
 {
-    if (access(command, F_OK) != 0)
+    int i;
+    for (i = 0; i < argument_count; i++)
     {
-        printf("%s command not found\n", command);
-        return 1;
+        printf("%s ", arguments[i]);
     }
+    printf("\n");
+    return 0;
+}
 
+int execute_command(char *command, char *arguments[], int argument_count, int background)
+{
     int pid, status;
     pid = fork();
     if (pid == 0)
     {
         if (background == 0)
         {
-            execvp(command, arguments);
+            if (execvp(command, arguments) == -1)
+            {
+                perror("Error");
+                exit(EXIT_FAILURE);
+            };
+            exit(EXIT_SUCCESS);
         }
         else
         {
-            execvp(command, arguments);
+            if (execvp(command, arguments) == -1)
+            {
+                perror("Error");
+                exit(EXIT_FAILURE);
+            };
             wait(&status);
+            exit(EXIT_SUCCESS);
         }
     }
     else
@@ -53,21 +68,27 @@ int main()
             token = strtok(NULL, " ");
         }
 
-        // Remove the newline to the last token
-        tokens[token_count - 1][strlen(tokens[token_count - 1]) - 1] = '\0';
-
         char *command = tokens[0];
         char *arguments[1024];
-        arguments[0] = command;
-        int argument_count = 1;
+
+        int argument_count = 0;
         int background = tokens[token_count - 1][0] == '&';
-        for (int i = 1; i < token_count - 1 - background; i++)
+
+        for (int i = 0; i < token_count - background; i++)
         {
             arguments[argument_count] = tokens[i];
             argument_count++;
         }
 
-        int state = execute_command(command, arguments, argument_count, background);
+        // Remove newline from last argument
+        if (argument_count > 0 && background == 0)
+            arguments[argument_count - 1][strlen(arguments[argument_count - 1]) - 1] = '\0';
+
+        // If is a empty command, continue
+        if (strcmp(command, "") == 0)
+            continue;
+
+        execute_command(command, arguments, argument_count, background);
     }
     return 0;
 }
