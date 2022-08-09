@@ -6,3 +6,7 @@
 $ make
 $ ./shellcito
 ```
+
+### Comentarios a solucionar
+
+- Tiene un problema para limpiar los argumentos del comando anterior.
