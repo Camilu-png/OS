@@ -7,7 +7,3 @@
 ## Mini Shell
 
 > "Se pide escribir un mini shell que espera que un usuario entre un comando y lo ejecuta en primer plano o en segundo plano según lo que especifica el usuario. El comando puede contener o no el camino completo hacia el ejecutable. El usuario debe ser capaz de entregar argumentos para la ejecución del comando."
-
-### Comentarios a solucionar
-
-* Tiene un problema para limpiar los argumentos del comando anterior.
