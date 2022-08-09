@@ -42,3 +42,32 @@ Para realizar la MMU se deben conocer las funciones básicas que se van a implem
 Hay que aclarar que frame es diferente a página. Las páginas se alojan en los frames, así que cuando se libera con free(3) se libera la página que esté en el frame 3. No necesariamente la página 3 estará en el frame 3.
 
 ## Estructuras de datos
+
+Se utilizaron dos estructuras de datos:
+
+### Page
+
+Esta estructura representa una página, y como toda página necesita tener su id para poder identificarla, tres bits que son utilizados para representar el estado de la página, y un entero que la relaciona con el frame en el que se encuentra.
+
+```c
+typedef struct
+{
+    int id;
+    int valid;
+    int used;
+    int dirty;
+    int frame;
+} Page;
+```
+
+### Frame
+
+Frame es la estructura en la que se van a almacenar las páginas que están en memoria. Cada frame tiene su propio ID y un puntero a la página que está en el frame.
+
+```c
+typedef struct
+{
+    int id_frame;
+    Page *page;
+} Frame;
+```
