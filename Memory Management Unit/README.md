@@ -1,5 +1,7 @@
 # Entrega 2
 
+> "El objetivo de la tarea es escribir un simulador de una Memory Management Unit para una memoria paginada. El simulador se puede escribir en cualquier lenguaje de programación, pero debe respetar las especificaciones explicadas más adelante. El simulador debe funcionar en un sistema operativo Linux (no desarrollarlo en Windows)."
+
 ## Instrucciones de uso
 
 ```shell
